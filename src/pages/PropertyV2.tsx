@@ -1048,7 +1048,7 @@ const PropertyV2 = () => {
                   <Circle className="w-5 h-5 text-muted-foreground" />
                   <h4 className="font-semibold text-foreground">Remaining</h4>
                   <span className="ml-auto text-sm text-muted-foreground">
-                    {(progress?.remainingItems.length || 0) + (floorPlanUrl ? 0 : 1)}
+                    {(progress?.remainingItems.length || 0) + (floorPlanUrl ? 0 : 1)}+
                   </span>
                 </div>
                 <div className="space-y-2">
