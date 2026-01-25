@@ -62,8 +62,9 @@ interface ProgressDetails {
 }
 
 interface ContinueResponse {
-  percent: number;
-  messages: { role: string; content: string }[];
+  percent?: number;
+  messages?: { role: string; content: string }[];
+  reply?: string; // New message from assistant (for user message responses)
   suggestions: string[];
   progress_details?: {
     percent: number;
@@ -286,21 +287,22 @@ const PropertyV2 = () => {
       if (!res.ok) throw new Error("Failed to send");
       const data: ContinueResponse = await res.json();
       
-      // Get the last assistant message
-      const lastAssistantMsg = data.messages?.filter(m => m.role === "assistant").pop();
-      if (lastAssistantMsg) {
-        const aiMsg: Message = { role: "assistant", content: lastAssistantMsg.content, created_at: new Date().toISOString() };
+      // Backend returns 'reply' for user messages, not 'messages' array
+      const assistantContent = data.reply || data.messages?.filter(m => m.role === "assistant").pop()?.content;
+      if (assistantContent) {
+        const aiMsg: Message = { role: "assistant", content: assistantContent, created_at: new Date().toISOString() };
         setMessages(prev => [...prev, userMsg, aiMsg]);
-        setCurrentAiMessage(lastAssistantMsg.content);
+        setCurrentAiMessage(assistantContent);
       }
       
       // Update progress with data from response
-      const progressData = data.progress_details || { percent: data.percent, completedItems: [], remainingItems: [] };
-      setProgress({
-        percent: progressData.percent,
-        completedItems: progressData.completedItems || [],
-        remainingItems: progressData.remainingItems || [],
-      });
+      if (data.progress_details) {
+        setProgress({
+          percent: data.progress_details.percent,
+          completedItems: data.progress_details.completedItems || [],
+          remainingItems: data.progress_details.remainingItems || [],
+        });
+      }
       setSuggestions(data.suggestions || []);
       
       // Refetch space data to get any updates
