@@ -300,6 +300,24 @@ const ExplorePropertyDetail = () => {
     enabled: !!id,
   });
 
+  // Fetch floor plan document for this space
+  const { data: floorPlanDoc } = useQuery({
+    queryKey: ['space-floorplan-public', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('space_document')
+        .select('*')
+        .eq('space_id', id)
+        .eq('is_floorplan_related_doc', true)
+        .eq('processing_status', 'completed')
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -524,7 +542,7 @@ const ExplorePropertyDetail = () => {
               <Separator className="my-6" />
               <div>
                 <h3 className="text-lg font-semibold mb-4">Floor Plan</h3>
-                <FloorPlanDisplay spaceId={id || ''} />
+                <FloorPlanDisplay spaceId={id || ''} floorPlanUrl={floorPlanDoc?.storage_url} />
               </div>
 
               {/* Location Map */}
