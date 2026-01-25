@@ -14,8 +14,27 @@ interface DiscoveredItem {
   confidence: number;
 }
 
+interface RoomAmenity {
+  room_type: string;
+  room_number: number;
+  amenities: string[];
+}
+
+interface PropertyFeature {
+  category: string;
+  name: string;
+}
+
+interface ExtractedRoom {
+  name: string;
+  room_type: string;
+}
+
 interface AnalysisResult {
   items: DiscoveredItem[];
+  rooms?: ExtractedRoom[];
+  roomAmenities?: RoomAmenity[];
+  propertyFeatures?: PropertyFeature[];
   summary: string;
   propertyDetails: {
     bedrooms?: number;
@@ -98,20 +117,37 @@ serve(async (req) => {
         content: `You are a property analysis expert. Analyze the provided documents/images and extract all property information.
 
 Extract and return:
-1. Room counts (bedrooms, bathrooms, living rooms, kitchens, etc.)
-2. Amenities (WiFi, parking, pool, gym, washer/dryer, AC, heating, etc.)
-3. Property features (balcony, garden, garage, etc.)
+1. Room counts - for each room use these exact room_type values: bedroom, bathroom, kitchen, living_room, dining_room, hall, balcony, garage, laundry, office, storage, patio, garden, basement, attic
+2. Amenities - things inside rooms like appliances, furniture, etc.
+3. Property features - select from these predefined categories and names:
+   - parking: "Free parking on premises", "Free street parking", "EV charger"
+   - pets: "Pets allowed", "Pet bowls", "Fenced yard"
+   - family: "Crib", "High chair", "Baby monitor", "Outlet covers", "Stair gates"
+   - cleaning: "Cleaning supplies", "Vacuum cleaner", "Mop", "Luggage drop-off allowed"
+   - extras: "Welcome snacks", "Coffee and tea", "Slippers", "Bathrobes"
+   - misc: "Long-term stays allowed", "Smoking allowed", "Events allowed", "Smoke alarm", "Carbon monoxide alarm", "Fire extinguisher"
 4. Property details (square footage, price, address if visible)
-5. Any other notable features or details
 
-Be thorough and list EVERY amenity and feature you can identify from the images or documents.
+Be thorough and list EVERY amenity and feature you can identify.
 
 Return your response as a JSON object with this structure:
 {
+  "rooms": [
+    { "name": "Master Bedroom", "room_type": "bedroom" },
+    { "name": "En-suite Bathroom", "room_type": "bathroom" }
+  ],
+  "roomAmenities": [
+    { "room_type": "bedroom", "room_number": 1, "amenities": ["Bed", "Wardrobe", "Air conditioning"] },
+    { "room_type": "bathroom", "room_number": 1, "amenities": ["Shower / Bathtub", "Hot water", "Towels"] }
+  ],
+  "propertyFeatures": [
+    { "category": "parking", "name": "Free parking on premises" },
+    { "category": "misc", "name": "Smoke alarm" }
+  ],
   "items": [
     { "type": "room", "name": "Master Bedroom", "category": "bedroom", "confidence": 0.95 },
     { "type": "amenity", "name": "WiFi", "category": "technology", "confidence": 0.9 },
-    { "type": "feature", "name": "Balcony", "category": "outdoor", "confidence": 0.85 }
+    { "type": "feature", "name": "Free parking on premises", "category": "parking", "confidence": 0.85 }
   ],
   "summary": "A brief description of the property",
   "propertyDetails": {
@@ -122,8 +158,7 @@ Return your response as a JSON object with this structure:
   }
 }
 
-Categories for amenities: bedroom, bathroom, kitchen, living, laundry, technology, safety, entrance, outdoor, recreation, parking, pets, family, cleaning, extras.
-Types: room, amenity, feature, detail.`
+IMPORTANT: For propertyFeatures, ONLY use the exact names listed above. For room_type, use the exact values specified.`
       }
     ];
 
@@ -206,86 +241,152 @@ Types: room, amenity, feature, detail.`
       });
     }
 
-    console.log(`Discovered ${result.items?.length || 0} items`);
+    console.log(`Discovered ${result.items?.length || 0} items, ${result.rooms?.length || 0} rooms, ${result.propertyFeatures?.length || 0} features`);
 
-    // Optionally save discovered amenities to the database
-    if (result.items && result.items.length > 0) {
-      const amenities = result.items
-        .filter(item => item.type === 'amenity' || item.type === 'feature')
-        .map(item => ({
+    // Save rooms with their amenities to space_amenity table
+    // Group rooms by type to assign proper room numbers
+    const roomsByType: Record<string, ExtractedRoom[]> = {};
+    if (result.rooms) {
+      for (const room of result.rooms) {
+        if (!roomsByType[room.room_type]) {
+          roomsByType[room.room_type] = [];
+        }
+        roomsByType[room.room_type].push(room);
+      }
+    }
+
+    // Create amenities for each room (this is what the UI reads)
+    const roomAmenitiesRecords: any[] = [];
+    
+    // Process roomAmenities if provided by the model
+    if (result.roomAmenities && result.roomAmenities.length > 0) {
+      for (const ra of result.roomAmenities) {
+        for (const amenityName of ra.amenities) {
+          roomAmenitiesRecords.push({
+            space_id: spaceId,
+            name: amenityName,
+            room_type: ra.room_type,
+            room_number: ra.room_number,
+            status: 'verified',
+            required: false,
+          });
+        }
+      }
+    } else if (result.rooms) {
+      // Fallback: create a placeholder amenity for each room so it shows in the UI
+      let roomCounter: Record<string, number> = {};
+      for (const room of result.rooms) {
+        if (!roomCounter[room.room_type]) {
+          roomCounter[room.room_type] = 0;
+        }
+        roomCounter[room.room_type]++;
+        const roomNumber = roomCounter[room.room_type];
+        
+        // Add a basic amenity so the room appears
+        roomAmenitiesRecords.push({
           space_id: spaceId,
-          name: item.name,
-          room_type: item.category,
-          room_number: 1, // Default room number for general amenities
+          name: room.name || `${room.room_type} ${roomNumber}`,
+          room_type: room.room_type,
+          room_number: roomNumber,
           status: 'verified',
-        }));
-
-      if (amenities.length > 0) {
-        const { error: insertError } = await supabase
-          .from("space_amenity")
-          .upsert(amenities, { onConflict: 'space_id,name,room_type,room_number' });
-
-        if (insertError) {
-          console.error("Error saving amenities:", insertError);
-        } else {
-          console.log(`Saved ${amenities.length} amenities to database`);
-        }
+          required: false,
+        });
       }
+    }
 
-      // Save rooms
-      const rooms = result.items
-        .filter(item => item.type === 'room')
-        .map((item, idx) => ({
+    // Save room amenities
+    if (roomAmenitiesRecords.length > 0) {
+      const { error: roomAmenityError } = await supabase
+        .from("space_amenity")
+        .upsert(roomAmenitiesRecords, { onConflict: 'space_id,name,room_type,room_number' });
+
+      if (roomAmenityError) {
+        console.error("Error saving room amenities:", roomAmenityError);
+      } else {
+        console.log(`Saved ${roomAmenitiesRecords.length} room amenities to database`);
+      }
+    }
+
+    // Save property features (misc amenities) with correct category and exact names
+    if (result.propertyFeatures && result.propertyFeatures.length > 0) {
+      const featureRecords = result.propertyFeatures.map(f => ({
+        space_id: spaceId,
+        name: f.name,
+        room_type: f.category,
+        room_number: 1,
+        status: 'provided',
+        required: false,
+      }));
+
+      const { error: featureError } = await supabase
+        .from("space_amenity")
+        .upsert(featureRecords, { onConflict: 'space_id,name,room_type,room_number' });
+
+      if (featureError) {
+        console.error("Error saving property features:", featureError);
+      } else {
+        console.log(`Saved ${featureRecords.length} property features to database`);
+      }
+    }
+
+    // Also save to room table for reference
+    if (result.rooms && result.rooms.length > 0) {
+      let roomCounter: Record<string, number> = {};
+      const roomRecords = result.rooms.map((room) => {
+        if (!roomCounter[room.room_type]) {
+          roomCounter[room.room_type] = 0;
+        }
+        roomCounter[room.room_type]++;
+        return {
           space_id: spaceId,
-          name: item.name,
-          room_type: item.category,
-          room_number: idx + 1,
-        }));
-
-      if (rooms.length > 0) {
-        const { error: roomError } = await supabase
-          .from("room")
-          .upsert(rooms, { onConflict: 'space_id,name' });
-
-        if (roomError) {
-          console.error("Error saving rooms:", roomError);
-        } else {
-          console.log(`Saved ${rooms.length} rooms to database`);
-        }
-      }
-
-      // Update space metadata with property details
-      if (result.propertyDetails) {
-        const { data: currentSpace } = await supabase
-          .from("space")
-          .select("metadata, description")
-          .eq("id", spaceId)
-          .single();
-
-        const currentMetadata = (currentSpace?.metadata || {}) as Record<string, any>;
-        const updates: any = {
-          metadata: {
-            ...currentMetadata,
-            ...(result.propertyDetails.bedrooms && { bedrooms: result.propertyDetails.bedrooms }),
-            ...(result.propertyDetails.bathrooms && { bathrooms: result.propertyDetails.bathrooms }),
-            ...(result.propertyDetails.squareFeet && { square_feet: result.propertyDetails.squareFeet }),
-            ...(result.propertyDetails.price && { price: result.propertyDetails.price }),
-          },
-          updated_at: new Date().toISOString(),
+          name: room.name,
+          room_type: room.room_type,
+          room_number: roomCounter[room.room_type],
         };
+      });
 
-        if (result.propertyDetails.description && !currentSpace?.description) {
-          updates.description = result.propertyDetails.description;
-        }
-        if (result.propertyDetails.address) {
-          updates.address = result.propertyDetails.address;
-        }
+      const { error: roomError } = await supabase
+        .from("room")
+        .upsert(roomRecords, { onConflict: 'space_id,name' });
 
-        await supabase
-          .from("space")
-          .update(updates)
-          .eq("id", spaceId);
+      if (roomError) {
+        console.error("Error saving rooms:", roomError);
+      } else {
+        console.log(`Saved ${roomRecords.length} rooms to database`);
       }
+    }
+
+    // Update space metadata with property details
+    if (result.propertyDetails) {
+      const { data: currentSpace } = await supabase
+        .from("space")
+        .select("metadata, description")
+        .eq("id", spaceId)
+        .single();
+
+      const currentMetadata = (currentSpace?.metadata || {}) as Record<string, any>;
+      const updates: any = {
+        metadata: {
+          ...currentMetadata,
+          ...(result.propertyDetails.bedrooms && { bedrooms: result.propertyDetails.bedrooms }),
+          ...(result.propertyDetails.bathrooms && { bathrooms: result.propertyDetails.bathrooms }),
+          ...(result.propertyDetails.squareFeet && { square_feet: result.propertyDetails.squareFeet }),
+          ...(result.propertyDetails.price && { price: result.propertyDetails.price }),
+        },
+        updated_at: new Date().toISOString(),
+      };
+
+      if (result.propertyDetails.description && !currentSpace?.description) {
+        updates.description = result.propertyDetails.description;
+      }
+      if (result.propertyDetails.address) {
+        updates.address = result.propertyDetails.address;
+      }
+
+      await supabase
+        .from("space")
+        .update(updates)
+        .eq("id", spaceId);
     }
 
     return new Response(JSON.stringify(result), {
