@@ -1016,11 +1016,11 @@ const PropertyV2 = () => {
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
                   <h4 className="font-semibold text-foreground">Completed</h4>
                   <span className="ml-auto text-sm text-muted-foreground">
-                    {(progress?.completedItems.length || 0) + (floorPlanUrl ? 1 : 0)}
+                    {(progress?.completedItems.length || 0) + (floorPlanUrl ? 1 : 0)}+
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {progress?.completedItems.map((item) => (
+                  {progress?.completedItems.slice(0, 5).map((item) => (
                     <div key={item.key} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{item.label}</span>
                       <span className="text-foreground font-medium truncate max-w-[120px]">
