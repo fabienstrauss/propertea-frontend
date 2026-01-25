@@ -201,7 +201,7 @@ const PropertyV2 = () => {
 
   const loadConversation = async () => {
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/space-continue/${id}`;
+      const url = `${import.meta.env.VITE_REALTIME_BACKEND_URL}/api/space/${id}/continue`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
@@ -234,7 +234,7 @@ const PropertyV2 = () => {
     const userMsg: Message = { role: "user", content: messageToSend, created_at: new Date().toISOString() };
 
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/space-continue/${id}`;
+      const url = `${import.meta.env.VITE_REALTIME_BACKEND_URL}/api/space/${id}/continue`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
@@ -244,6 +244,7 @@ const PropertyV2 = () => {
         body: JSON.stringify({
           messages: [...messages, userMsg],
           userMessage: messageToSend,
+          uploadedFiles,
         }),
       });
       if (!res.ok) throw new Error("Failed to send");
