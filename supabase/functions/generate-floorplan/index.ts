@@ -26,17 +26,17 @@ serve(async (req) => {
     }
 
     // Call Tower.dev API with SPACE_ID as the parameter
-    const apiUrl = 'https://api.tower.dev/v1/apps/tastey-mountain-186/runs';
+    const apiUrl = 'https://api.tower.dev/v1/apps/hercules/runs';
     console.log('Calling Tower.dev API:', apiUrl);
 
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${TOWER_API_KEY}`,
         'Content-Type': 'application/json',
+        'X-API-Key': TOWER_API_KEY,
       },
       body: JSON.stringify({
-        environment: 'production',
+        environment: 'default',
         parameters: {
           SPACE_ID: spaceId,
         },
