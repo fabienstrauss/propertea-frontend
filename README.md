@@ -1,73 +1,161 @@
-# Welcome to your Lovable project
+# ProperTea Frontend
 
-## Project info
+Web application for [ProperTea](https://github.com/jorgejarne/propertea-backend) — AI-powered property onboarding with live video assistance.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Built with [Loveable](https://lovable.dev).
 
-## How can I edit this code?
+## Architecture
 
-There are several ways of editing your application.
+```mermaid
+flowchart TB
+    subgraph CLIENT["🖥️ Client Layer"]
+        User((👤 User))
+        App[React App]
+    end
 
-**Use Lovable**
+    subgraph PAGES["📄 Pages"]
+        Dashboard[Dashboard]
+        SpaceLive[Space Live]
+        PropertyDetail[Property Detail]
+        Explore[Explore]
+    end
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+    subgraph REALTIME["⚡ Live Session"]
+        WS{{WebSocket}}
+        
+        subgraph STREAMS["Multimodal Streams"]
+            LiveAgent((🎙️ Ms. T<br/>Live Agent))
+            Video((📹 Video<br/>Stream))
+            Audio((🔊 Audio<br/>Stream))
+        end
+    end
 
-Changes made via Lovable will be committed automatically to this repo.
+    subgraph BACKEND["🔧 Backend Services"]
+        RealtimeServer{{Realtime<br/>Server}}
+        Functions[/Supabase<br/>Functions/]
+        
+        subgraph TOWER["Tower.dev"]
+            FloorEngine[[Floor Plan<br/>Generator]]
+        end
+    end
 
-**Use your preferred IDE**
+    subgraph AI["🧠 Intelligence Layer"]
+        LiveModel((Realtime<br/>Model))
+        TextModel((Text<br/>Model))
+        VisionModel((Vision<br/>Model))
+    end
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+    space1[ ]
+    style space1 fill:none,stroke:none
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+    subgraph DATA["💾 Supabase"]
+        DB[(PostgreSQL)]
+        Storage[(Storage)]
+        Auth[Auth]
+    end
 
-Follow these steps:
+    %% Client navigation
+    User --> App
+    App --> Dashboard
+    App --> SpaceLive
+    App --> PropertyDetail
+    App --> Explore
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+    %% Dashboard flows
+    Dashboard --> Functions
+    Dashboard --> DB
+    PropertyDetail --> Functions
+    PropertyDetail --> Storage
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+    %% Live session
+    SpaceLive <--> WS
+    WS --- LiveAgent
+    WS --- Video
+    WS --- Audio
 
-# Step 3: Install the necessary dependencies.
-npm i
+    %% Backend connections
+    WS <--> RealtimeServer
+    RealtimeServer <--> LiveModel
+    Functions --> TextModel
+    Storage --> FloorEngine
+    FloorEngine --> VisionModel
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+    %% Spacer
+    AI ~~~ space1
+    space1 ~~~ DATA
+
+    %% Data persistence
+    RealtimeServer --> DB
+    Functions --> DB
+    FloorEngine --> Storage
+    LiveModel -.->|function calls| DB
+    TextModel -.->|extraction| DB
+
+    %% Auth
+    App --> Auth
+
+    %% Styling
+    classDef userNode fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef aiNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef dataNode fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    classDef computeNode fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    classDef streamNode fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef pageNode fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+
+    class User userNode
+    class LiveModel,TextModel,VisionModel aiNode
+    class DB,Storage,Auth dataNode
+    class WS,RealtimeServer,Functions,FloorEngine computeNode
+    class LiveAgent,Video,Audio streamNode
+    class Dashboard,SpaceLive,PropertyDetail,Explore pageNode
+```
+
+## Features
+
+- **Dashboard** — Manage properties and event spaces with grid/table views
+- **Live Onboarding** — Video call with Ms. T, our AI property assistant
+- **Document Upload** — Upload floor plans, images, PDFs for AI processing
+- **Floor Plan Generation** — AI-generated 2D floor plans from uploaded documents
+- **Property Explorer** — Browse and discover published properties
+- **Real-time Transcription** — Live speech-to-text during video sessions
+
+## Tech Stack
+
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS + shadcn/ui
+- Supabase (Auth, Database, Storage, Edge Functions)
+- React Query
+- Framer Motion
+- WebSocket (for live sessions)
+
+## Getting Started
+
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+VITE_SUPABASE_URL=<supabase-url>
+VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
+VITE_REALTIME_BACKEND_URL=<realtime-server-url>
+```
 
-**Use GitHub Codespaces**
+## Project Structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+src/
+├── components/     # Reusable UI components
+├── contexts/       # React contexts (Auth, FileUpload)
+├── hooks/          # Custom hooks
+├── integrations/   # Supabase client & types
+├── pages/          # Route pages
+└── lib/            # Utilities
+```
 
-## What technologies are used for this project?
+## Related
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Backend**: [github.com/jorgejarne/proper-tea-berlin-hackaton](https://github.com/jorgejarne/propertea-backend)
