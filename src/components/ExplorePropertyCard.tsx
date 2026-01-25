@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Star } from 'lucide-react';
+import { Heart, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface Property {
   id: string;
@@ -10,7 +11,8 @@ interface Property {
   description: string | null;
   status: string | null;
   created_at: string;
-  primaryImage?: string | null;
+  images?: string[];
+  price?: number | null;
 }
 
 interface ExplorePropertyCardProps {
@@ -21,14 +23,13 @@ interface ExplorePropertyCardProps {
 // Fallback placeholder image
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop';
 
-// Mock data for Airbnb-style display (only for non-image data)
+// Mock data for Airbnb-style display (only for non-price data)
 const getMockData = (id: string) => {
   const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   
   return {
     rating: (4 + (hash % 10) / 10).toFixed(2),
     reviews: 10 + (hash % 200),
-    price: 80 + (hash % 400),
     beds: 1 + (hash % 5),
     baths: 1 + (hash % 3),
     guests: 2 + (hash % 8),
@@ -39,10 +40,26 @@ const getMockData = (id: string) => {
 const ExplorePropertyCard = ({ property, index }: ExplorePropertyCardProps) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const mock = getMockData(property.id);
 
-  // Use real primary image if available, otherwise fallback to placeholder
-  const imageUrl = property.primaryImage || PLACEHOLDER_IMAGE;
+  // Use real images if available, otherwise fallback to placeholder
+  const images = property.images && property.images.length > 0 
+    ? property.images 
+    : [PLACEHOLDER_IMAGE];
+
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  // Use real price from metadata or show nothing if not available
+  const displayPrice = property.price;
 
   return (
     <motion.div
@@ -55,10 +72,32 @@ const ExplorePropertyCard = ({ property, index }: ExplorePropertyCardProps) => {
       {/* Image Container */}
       <div className="relative aspect-square rounded-xl overflow-hidden mb-3">
         <img
-          src={imageUrl}
+          src={images[currentImageIndex]}
           alt={property.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
+        
+        {/* Navigation Arrows - only show if multiple images */}
+        {images.length > 1 && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handlePrevImage}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNextImage}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </>
+        )}
         
         {/* Favorite Button */}
         <button
@@ -83,16 +122,21 @@ const ExplorePropertyCard = ({ property, index }: ExplorePropertyCardProps) => {
         )}
 
         {/* Image Dots */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-          {[0, 1, 2, 3, 4].map((dot) => (
-            <div
-              key={dot}
-              className={`w-1.5 h-1.5 rounded-full ${
-                dot === 0 ? 'bg-background' : 'bg-background/50'
-              }`}
-            />
-          ))}
-        </div>
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+            {images.slice(0, 5).map((_, dotIndex) => (
+              <div
+                key={dotIndex}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  dotIndex === currentImageIndex ? 'bg-background' : 'bg-background/50'
+                }`}
+              />
+            ))}
+            {images.length > 5 && (
+              <div className="w-1.5 h-1.5 rounded-full bg-background/50" />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -115,10 +159,12 @@ const ExplorePropertyCard = ({ property, index }: ExplorePropertyCardProps) => {
           {mock.guests} guests
         </p>
         
-        <p className="text-foreground">
-          <span className="font-semibold">${mock.price}</span>
-          <span className="text-muted-foreground"> night</span>
-        </p>
+        {displayPrice !== null && displayPrice !== undefined && (
+          <p className="text-foreground">
+            <span className="font-semibold">${displayPrice}</span>
+            <span className="text-muted-foreground"> night</span>
+          </p>
+        )}
       </div>
     </motion.div>
   );

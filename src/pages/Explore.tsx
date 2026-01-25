@@ -24,7 +24,7 @@ const Explore = () => {
       if (spacesError) throw spacesError;
       if (!spacesData || spacesData.length === 0) return [];
 
-      // Fetch primary images for all spaces
+      // Fetch all images for all spaces
       const spaceIds = spacesData.map(s => s.id);
       const { data: imagesData } = await supabase
         .from('space_image')
@@ -32,10 +32,10 @@ const Explore = () => {
         .in('space_id', spaceIds)
         .order('display_order', { ascending: true });
 
-      // Map primary images to spaces
-      const imageMap = new Map<string, string>();
+      // Map all images to spaces, sorted with primary first
+      const imagesMap = new Map<string, string[]>();
       if (imagesData) {
-        // Group by space_id and pick primary or first image
+        // Group by space_id
         const groupedImages = imagesData.reduce((acc, img) => {
           if (!acc[img.space_id]) acc[img.space_id] = [];
           acc[img.space_id].push(img);
@@ -43,15 +43,19 @@ const Explore = () => {
         }, {} as Record<string, typeof imagesData>);
 
         Object.entries(groupedImages).forEach(([spaceId, images]) => {
-          const primaryImg = images.find(img => img.is_primary);
-          const firstImg = images[0];
-          imageMap.set(spaceId, primaryImg?.storage_url || firstImg?.storage_url || '');
+          // Sort with primary first, then by display_order
+          const sorted = [...images].sort((a, b) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            return (a.display_order || 0) - (b.display_order || 0);
+          });
+          imagesMap.set(spaceId, sorted.map(img => img.storage_url));
         });
       }
 
       return spacesData.map(space => ({
         ...space,
-        primaryImage: imageMap.get(space.id) || null,
+        images: imagesMap.get(space.id) || [],
       }));
     },
   });
@@ -62,15 +66,19 @@ const Explore = () => {
   );
 
   // Map spaces to property interface for ExplorePropertyCard
-  const propertiesForDisplay = filteredSpaces?.map(space => ({
-    id: space.id,
-    name: space.name,
-    address: space.address,
-    description: space.description,
-    status: space.status,
-    created_at: space.created_at,
-    primaryImage: space.primaryImage,
-  }));
+  const propertiesForDisplay = filteredSpaces?.map(space => {
+    const metadata = (space.metadata || {}) as { base_price?: number };
+    return {
+      id: space.id,
+      name: space.name,
+      address: space.address,
+      description: space.description,
+      status: space.status,
+      created_at: space.created_at,
+      images: space.images,
+      price: metadata.base_price || null,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-background">
