@@ -252,7 +252,7 @@ const ExplorePropertyDetail = () => {
     enabled: !!id,
   });
 
-  // Fetch amenities for this space
+  // Fetch amenities for this space (exclude those explicitly marked as not provided)
   const { data: amenities = [] } = useQuery({
     queryKey: ['space-amenities-public', id],
     queryFn: async () => {
@@ -260,8 +260,8 @@ const ExplorePropertyDetail = () => {
         .from('space_amenity')
         .select('*')
         .eq('space_id', id)
-        .eq('status', 'provided')
-        .order('category', { ascending: true });
+        .neq('status', 'not_provided')
+        .order('room_type', { ascending: true });
       
       if (error) throw error;
       return data;
