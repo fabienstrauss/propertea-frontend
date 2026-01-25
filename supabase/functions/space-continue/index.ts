@@ -25,6 +25,7 @@ const REQUIRED_FIELDS = [
   { key: 'bathrooms', label: 'Number of Bathrooms', category: 'details' },
   { key: 'maxGuests', label: 'Maximum Guests', category: 'details' },
   { key: 'basePrice', label: 'Base Price per Night', category: 'pricing' },
+  { key: 'hasFloorPlan', label: 'Floor Plan', category: 'media' },
 ];
 
 interface SpaceInfo {
@@ -57,10 +58,23 @@ function calculateProgress(spaceInfo: SpaceInfo) {
   const metadata = spaceInfo.space?.metadata || {};
   const space = spaceInfo.space || {};
   
+  // Check if a floor plan document exists
+  const hasFloorPlan = spaceInfo.documents.some((doc: any) => doc.is_floorplan_related_doc === true);
+  
   const filledFields: string[] = [];
   const missingFields: string[] = [];
   
   REQUIRED_FIELDS.forEach(field => {
+    // Special handling for hasFloorPlan field
+    if (field.key === 'hasFloorPlan') {
+      if (hasFloorPlan) {
+        filledFields.push(field.key);
+      } else {
+        missingFields.push(field.key);
+      }
+      return;
+    }
+    
     const value = metadata[field.key] || space[field.key];
     if (value && String(value).trim() !== '') {
       filledFields.push(field.key);
@@ -77,11 +91,20 @@ function calculateProgress(spaceInfo: SpaceInfo) {
     missingFields,
     total: REQUIRED_FIELDS.length,
     filled: filledFields.length,
-    fieldDetails: REQUIRED_FIELDS.map(f => ({
-      ...f,
-      filled: filledFields.includes(f.key),
-      value: metadata[f.key] || space[f.key] || null,
-    })),
+    fieldDetails: REQUIRED_FIELDS.map(f => {
+      if (f.key === 'hasFloorPlan') {
+        return {
+          ...f,
+          filled: hasFloorPlan,
+          value: hasFloorPlan ? 'Uploaded' : null,
+        };
+      }
+      return {
+        ...f,
+        filled: filledFields.includes(f.key),
+        value: metadata[f.key] || space[f.key] || null,
+      };
+    }),
   };
 }
 
