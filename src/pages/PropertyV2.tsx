@@ -314,25 +314,25 @@ const PropertyV2 = () => {
 
         // Insert into appropriate table based on file type
         if (is3DScan) {
-          await supabase.from('space_3d_model').insert({
-            space_id: id,
+          await supabase.from('space_3d_model').insert([{
+            space_id: id!,
             file_name: file.name,
             file_size: file.size,
             storage_url: urlData.publicUrl,
             storage_path: storagePath,
-          });
+          }]);
         } else {
-          await supabase.from('space_document').insert({
-            space_id: id,
+          await supabase.from('space_document').insert([{
+            space_id: id!,
             file_name: file.name,
             file_type: isImage ? 'image' : isPdf ? 'pdf' : isVideo ? 'video' : 'document',
             mime_type: file.type,
             file_size: file.size,
             storage_url: urlData.publicUrl,
             storage_path: storagePath,
-            processing_status: 'uploaded',
+            processing_status: 'pending' as const,
             is_floorplan_related_doc: isFloorplan,
-          });
+          }]);
         }
 
         setUploadedFiles(prev =>
