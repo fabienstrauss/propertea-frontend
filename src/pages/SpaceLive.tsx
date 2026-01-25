@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mic, MicOff, Video, VideoOff, Phone, MessageSquare, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles } from "lucide-react";
+import { ArrowLeft, Mic, MicOff, Video, VideoOff, Phone, MessageSquare, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles, SwitchCamera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ const SpaceLive = () => {
   const [showDebug, setShowDebug] = useState(false);
   const [showTranscription, setShowTranscription] = useState(true);
   const [transcripts, setTranscripts] = useState<{ role: 'user' | 'assistant'; text: string; time: string }[]>([]);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
   const wsRef = useRef<WebSocket | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -453,6 +454,48 @@ const SpaceLive = () => {
     logMessage(isVideoOff ? "Video enabled" : "Video disabled");
   };
 
+  const switchCamera = async () => {
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    
+    try {
+      // Stop current video track
+      if (streamRef.current) {
+        streamRef.current.getVideoTracks().forEach((track) => track.stop());
+      }
+
+      // Get new video stream with different facing mode
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: 640,
+          height: 480,
+          facingMode: newFacingMode,
+        },
+      });
+
+      // Replace video track in existing stream
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      
+      if (streamRef.current) {
+        const oldVideoTrack = streamRef.current.getVideoTracks()[0];
+        if (oldVideoTrack) {
+          streamRef.current.removeTrack(oldVideoTrack);
+        }
+        streamRef.current.addTrack(newVideoTrack);
+      }
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+
+      setFacingMode(newFacingMode);
+      logMessage(`Camera switched to ${newFacingMode === "user" ? "front" : "back"}`);
+      toast.success(`📷 Switched to ${newFacingMode === "user" ? "front" : "back"} camera`);
+    } catch (err: any) {
+      logMessage("Failed to switch camera: " + err.message);
+      toast.error("Failed to switch camera");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex flex-col relative overflow-hidden">
       {/* Futuristic background effects */}
@@ -643,6 +686,16 @@ const SpaceLive = () => {
             onClick={toggleVideo}
           >
             {isVideoOff ? <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Video className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className="rounded-full w-12 h-12 sm:w-14 sm:h-14 p-0 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:border-cyan-400/50 transition-all duration-300"
+            onClick={switchCamera}
+            disabled={isVideoOff}
+          >
+            <SwitchCamera className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
 
           <Button 
