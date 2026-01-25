@@ -789,7 +789,7 @@ const PropertyV2 = () => {
               </div>
             ) : (
               /* Normal AI Assistant Mode */
-              <div className="bg-card rounded-3xl border border-border overflow-hidden shadow-xl">
+              <div className="bg-card rounded-3xl border border-border shadow-xl">
                 {/* AI Header */}
                 <div className="bg-gradient-to-r from-coral/10 to-pink-500/10 px-6 py-4 border-b border-border">
                   <div className="flex items-center gap-3">
