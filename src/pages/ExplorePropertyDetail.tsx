@@ -517,7 +517,7 @@ const ExplorePropertyDetail = () => {
             <Separator className="my-6" />
             <div>
               <h3 className="text-lg font-semibold mb-4">3D Virtual Tour</h3>
-              <Model3DGallery spaceId={id || ''} showExperimentalBadge={false} />
+              <Model3DGallery spaceId={id || ''} readOnly />
             </div>
 
               {/* Floor Plan Section */}

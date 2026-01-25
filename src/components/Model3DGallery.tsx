@@ -16,6 +16,7 @@ interface Model3DGalleryProps {
   spaceId: string;
   showExperimentalBadge?: boolean;
   compact?: boolean;
+  readOnly?: boolean;
 }
 
 interface Model3D {
@@ -30,7 +31,7 @@ interface Model3D {
   created_at: string | null;
 }
 
-const Model3DGallery = ({ spaceId, showExperimentalBadge = false, compact = false }: Model3DGalleryProps) => {
+const Model3DGallery = ({ spaceId, showExperimentalBadge = false, compact = false, readOnly = false }: Model3DGalleryProps) => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -163,8 +164,8 @@ const Model3DGallery = ({ spaceId, showExperimentalBadge = false, compact = fals
     );
   }
 
-  // Compact view for explore page
-  if (compact && models.length > 0 && activeModel) {
+  // Compact/readOnly view for explore page - just show the model viewer
+  if ((compact || readOnly) && models.length > 0 && activeModel) {
     return (
       <div className="rounded-xl overflow-hidden border border-border">
         <ModelViewer3D 
@@ -175,6 +176,11 @@ const Model3DGallery = ({ spaceId, showExperimentalBadge = false, compact = fals
         />
       </div>
     );
+  }
+
+  // ReadOnly with no models - show nothing
+  if (readOnly && models.length === 0) {
+    return null;
   }
 
   return (
