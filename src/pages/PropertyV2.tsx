@@ -53,6 +53,7 @@ import PropertyImageGallery from '@/components/PropertyImageGallery';
 import AmenitiesChecklist from '@/components/AmenitiesChecklist';
 import Model3DGallery from '@/components/Model3DGallery';
 import FloorPlanDisplay from '@/components/FloorPlanDisplay';
+import ZenModeDiscovery from '@/components/ZenModeDiscovery';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -86,6 +87,14 @@ interface ContinueResponse {
   messages: Message[];
   extracted?: Record<string, any>;
   suggestions?: string[];
+}
+
+interface DiscoveredItem {
+  type: 'amenity' | 'room' | 'feature' | 'detail';
+  name: string;
+  category: string;
+  value?: string | number;
+  confidence: number;
 }
 
 interface Space {
@@ -129,6 +138,9 @@ const PropertyV2 = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingFloorplan, setIsGeneratingFloorplan] = useState(false);
+  const [isAnalyzingDocuments, setIsAnalyzingDocuments] = useState(false);
+  const [discoveredItems, setDiscoveredItems] = useState<DiscoveredItem[]>([]);
+  const [analysisSummary, setAnalysisSummary] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Manual edit state
@@ -432,11 +444,73 @@ const PropertyV2 = () => {
       return;
     }
 
-    // Send to continue API with file context
-    const fileContext = `I've uploaded ${completedFiles.length} file(s): ${completedFiles.map(f => f.fileName).join(', ')}. Please analyze them and extract any property information.`;
-    await sendMessage(fileContext);
-    setSpecialMode(null);
-    setUploadedFiles([]);
+    // Reset previous discoveries
+    setDiscoveredItems([]);
+    setAnalysisSummary('');
+    setIsAnalyzingDocuments(true);
+
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+
+      if (!token) {
+        toast.error('Please log in to continue');
+        return;
+      }
+
+      // Call the new analyze-documents edge function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-documents`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            spaceId: id,
+            documentUrls: completedFiles.map(f => ({
+              url: f.storageUrl,
+              name: f.fileName,
+              type: f.fileType,
+            })),
+            context: userInput || undefined,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to analyze documents');
+      }
+
+      const result = await response.json();
+
+      // Set discovered items - they will animate in one by one
+      if (result.items && result.items.length > 0) {
+        setDiscoveredItems(result.items);
+        toast.success(`Discovered ${result.items.length} items!`);
+      } else {
+        toast.info('No items discovered from the documents');
+      }
+
+      if (result.summary) {
+        setAnalysisSummary(result.summary);
+      }
+
+      // Refresh data
+      refetchSpace();
+      loadConversation();
+
+      // Clear uploaded files but keep zen mode open to show results
+      setUploadedFiles([]);
+      setUserInput('');
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to analyze documents');
+    } finally {
+      setIsAnalyzingDocuments(false);
+    }
   };
 
   const saveChanges = async () => {
@@ -666,7 +740,7 @@ const PropertyV2 = () => {
                         </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => { setSpecialMode(null); setUploadedFiles([]); }} className="text-muted-foreground hover:text-foreground">
+                    <Button variant="ghost" size="sm" onClick={() => { setSpecialMode(null); setUploadedFiles([]); setDiscoveredItems([]); setAnalysisSummary(''); }} className="text-muted-foreground hover:text-foreground">
                       <X className="w-4 h-4 mr-1" /> Exit
                     </Button>
                   </div>
@@ -732,7 +806,7 @@ const PropertyV2 = () => {
                       onChange={(e) => setUserInput(e.target.value)}
                       placeholder={specialMode === 'zen' ? 'Optional: Add any context about these files...' : 'Optional: Describe the property layout...'}
                       className="mt-4 min-h-[80px] rounded-xl bg-background/50 border-border resize-none"
-                      disabled={isSending || isGeneratingFloorplan}
+                      disabled={isSending || isGeneratingFloorplan || isAnalyzingDocuments}
                     />
                   )}
 
@@ -750,13 +824,13 @@ const PropertyV2 = () => {
                         handleZenModeProcess();
                       }
                     }}
-                    disabled={completedFilesCount === 0 || isUploading || isGeneratingFloorplan || isSending}
+                    disabled={(completedFilesCount === 0 && !isAnalyzingDocuments && discoveredItems.length === 0) || isUploading || isGeneratingFloorplan || isSending || isAnalyzingDocuments}
                     className={`w-full mt-4 h-12 text-base ${
                       specialMode === 'zen' ? 'bg-coral hover:bg-coral/90' : specialMode === '3dscan' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-violet-600 hover:bg-violet-700'
                     }`}
                   >
-                    {(isGeneratingFloorplan || isSending) ? (
-                      <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Processing...</>
+                    {(isGeneratingFloorplan || isSending || isAnalyzingDocuments) ? (
+                      <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {isAnalyzingDocuments ? 'Analyzing...' : 'Processing...'}</>
                     ) : specialMode === 'floorplan' ? (
                       <><Layers className="w-5 h-5 mr-2" /> Generate Floor Plan</>
                     ) : specialMode === '3dscan' ? (
@@ -765,6 +839,15 @@ const PropertyV2 = () => {
                       <><Sparkles className="w-5 h-5 mr-2" /> Process with AI</>
                     )}
                   </Button>
+
+                  {/* Zen Mode Discovery Results */}
+                  {specialMode === 'zen' && (
+                    <ZenModeDiscovery 
+                      items={discoveredItems} 
+                      isAnalyzing={isAnalyzingDocuments}
+                      summary={analysisSummary}
+                    />
+                  )}
                 </div>
               </div>
             ) : (
