@@ -26,8 +26,21 @@ import {
   Layers,
   FileUp,
   Trash2,
-  Box
+  Box,
+  Globe,
+  EyeOff
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -123,6 +136,7 @@ const PropertyV2 = () => {
     zip_code: '', bedrooms: '', bathrooms: '', square_feet: '', price: ''
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>('basic');
   
   const inputRef = useRef<HTMLInputElement>(null);
@@ -435,6 +449,25 @@ const PropertyV2 = () => {
     }
   };
 
+  const togglePublish = async () => {
+    if (!id || !space) return;
+    setIsPublishing(true);
+    try {
+      const newStatus = space.status === 'published' ? 'draft' : 'published';
+      const { error } = await supabase.from('space').update({
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      }).eq('id', id);
+      if (error) throw error;
+      toast.success(newStatus === 'published' ? 'Space published!' : 'Space unpublished');
+      refetchSpace();
+    } catch (error) {
+      toast.error('Failed to update status');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   if (authLoading || spaceLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -464,14 +497,57 @@ const PropertyV2 = () => {
             </div>
           </div>
           
-          <Button
-            onClick={() => navigate(`/property/${id}/live`)}
-            className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white gap-2 shadow-lg shadow-violet-500/25"
-          >
-            <Video className="w-4 h-4" />
-            <span className="hidden sm:inline">Go Live</span>
-            <Mic className="w-3 h-3 animate-pulse" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant={space.status === 'published' ? 'outline' : 'default'}
+                  className={space.status === 'published' 
+                    ? 'gap-2' 
+                    : 'gap-2 bg-green-600 hover:bg-green-700 text-white'}
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : space.status === 'published' ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Globe className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {space.status === 'published' ? 'Unpublish' : 'Publish'}
+                  </span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {space.status === 'published' ? 'Unpublish this space?' : 'Publish this space?'}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {space.status === 'published' 
+                      ? 'This will remove the space from the Explore page. It will no longer be visible to the public.'
+                      : 'This will make the space visible on the Explore page for everyone to see.'}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={togglePublish}>
+                    {space.status === 'published' ? 'Unpublish' : 'Publish'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <Button
+              onClick={() => navigate(`/property/${id}/live`)}
+              className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white gap-2 shadow-lg shadow-violet-500/25"
+            >
+              <Video className="w-4 h-4" />
+              <span className="hidden sm:inline">Go Live</span>
+              <Mic className="w-3 h-3 animate-pulse" />
+            </Button>
+          </div>
         </div>
 
         {/* Progress Ring */}
