@@ -172,6 +172,23 @@ const PropertyV2 = () => {
     enabled: !!id,
   });
 
+  // Fetch floor plan document
+  const { data: floorPlanDoc, refetch: refetchFloorPlan } = useQuery({
+    queryKey: ["space-floorplan", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("space_document")
+        .select("*")
+        .eq("space_id", id)
+        .eq("is_floorplan_related_doc", true)
+        .eq("processing_status", "completed")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
   // Initialize form when space loads
   useEffect(() => {
     if (space) {
@@ -1250,6 +1267,80 @@ const PropertyV2 = () => {
                   >
                     <div className="px-6 pb-6">
                       <AmenitiesChecklist spaceId={id!} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Floor Plan Section */}
+            <div className="bg-card rounded-2xl border border-border overflow-hidden">
+              <button
+                onClick={() => setExpandedSection(expandedSection === "floorplan" ? null : "floorplan")}
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Layers className="w-5 h-5 text-violet-500" />
+                  <span className="font-semibold text-foreground">Floor Plan</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {floorPlanDoc ? (
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Remaining</span>
+                  )}
+                  <ChevronRight
+                    className={`w-5 h-5 text-muted-foreground transition-transform ${expandedSection === "floorplan" ? "rotate-90" : ""}`}
+                  />
+                </div>
+              </button>
+              <AnimatePresence>
+                {expandedSection === "floorplan" && (
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: "auto" }}
+                    exit={{ height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 pb-6">
+                      {floorPlanDoc?.storage_url ? (
+                        <div className="space-y-4">
+                          <div className="relative rounded-xl overflow-hidden border border-border group">
+                            <img
+                              src={floorPlanDoc.storage_url}
+                              alt="Property floor plan"
+                              className="w-full h-auto max-h-[400px] object-contain bg-secondary"
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground text-center">
+                            Floor plan generated successfully
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border-2 border-dashed border-border bg-muted/30 p-8 flex flex-col items-center justify-center gap-4 text-center">
+                          <div className="w-16 h-16 rounded-full bg-violet-500/10 flex items-center justify-center">
+                            <Layers className="w-8 h-8 text-violet-500/50" />
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground font-medium">No floor plan yet</p>
+                            <p className="text-sm text-muted-foreground/70 mt-1">
+                              Use the Floor Plan generator in AI Guide mode to create one
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setMode("ai");
+                              setSpecialMode("floorplan");
+                            }}
+                            className="mt-2"
+                          >
+                            <Layers className="w-4 h-4 mr-2" />
+                            Generate Floor Plan
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
