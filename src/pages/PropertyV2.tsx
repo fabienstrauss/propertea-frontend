@@ -987,15 +987,16 @@ const PropertyV2 = () => {
             <Model3DGallery spaceId={id!} showExperimentalBadge />
 
             {/* Floor Plan Display in AI Mode */}
-            {floorPlanDoc?.storage_url && (
-              <div className="bg-card rounded-2xl border border-border p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <Layers className="w-5 h-5 text-coral" />
-                  <h4 className="font-semibold text-foreground">Floor Plan</h4>
-                </div>
-                <FloorPlanDisplay spaceId={id!} floorPlanUrl={floorPlanDoc.storage_url} />
+            <div className="bg-card rounded-2xl border border-border p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Layers className="w-5 h-5 text-coral" />
+                <h4 className="font-semibold text-foreground">Floor Plan</h4>
+                {floorPlanDoc?.storage_url && (
+                  <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />
+                )}
               </div>
-            )}
+              <FloorPlanDisplay spaceId={id!} floorPlanUrl={floorPlanDoc?.storage_url} />
+            </div>
           </motion.div>
         )}
 
