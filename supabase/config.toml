@@ -1,1 +1,10 @@
 project_id = "yynjegzscyvedmhnqfyf"
+
+[functions.analyze-documents]
+verify_jwt = false
+
+[functions.generate-floorplan]
+verify_jwt = false
+
+[functions.space-continue]
+verify_jwt = false
