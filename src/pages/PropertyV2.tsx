@@ -172,19 +172,33 @@ const PropertyV2 = () => {
     enabled: !!id,
   });
 
-  // Fetch floor plan document
-  const { data: floorPlanDoc, refetch: refetchFloorPlan } = useQuery({
-    queryKey: ["space-floorplan", id],
+  // Fetch floor plan from storage bucket
+  const { data: floorPlanUrl, refetch: refetchFloorPlan } = useQuery({
+    queryKey: ["space-floorplan-storage", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("space_document")
-        .select("*")
-        .eq("space_id", id)
-        .eq("is_floorplan_related_doc", true)
-        .eq("processing_status", "completed")
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+      // List files in the uploads folder that match this property ID
+      const { data: files, error } = await supabase.storage
+        .from("property-documents")
+        .list("uploads", {
+          search: `${id}_floorplan`,
+          sortBy: { column: "created_at", order: "desc" },
+        });
+      
+      if (error) {
+        console.error("Error fetching floor plans:", error);
+        return null;
+      }
+      
+      // Get the most recent floor plan
+      if (files && files.length > 0) {
+        const mostRecent = files[0];
+        const { data: urlData } = supabase.storage
+          .from("property-documents")
+          .getPublicUrl(`uploads/${mostRecent.name}`);
+        return urlData.publicUrl;
+      }
+      
+      return null;
     },
     enabled: !!id,
   });
@@ -1273,6 +1287,36 @@ const PropertyV2 = () => {
               </AnimatePresence>
             </div>
 
+            {/* 3D Scans Section */}
+            <div className="bg-card rounded-2xl border border-border overflow-hidden">
+              <button
+                onClick={() => setExpandedSection(expandedSection === "3dscans" ? null : "3dscans")}
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Box className="w-5 h-5 text-emerald-500" />
+                  <span className="font-semibold text-foreground">3D Scans</span>
+                </div>
+                <ChevronRight
+                  className={`w-5 h-5 text-muted-foreground transition-transform ${expandedSection === "3dscans" ? "rotate-90" : ""}`}
+                />
+              </button>
+              <AnimatePresence>
+                {expandedSection === "3dscans" && (
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: "auto" }}
+                    exit={{ height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 pb-6">
+                      <Model3DGallery spaceId={id!} showExperimentalBadge />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Floor Plan Section */}
             <div className="bg-card rounded-2xl border border-border overflow-hidden">
               <button
@@ -1284,7 +1328,7 @@ const PropertyV2 = () => {
                   <span className="font-semibold text-foreground">Floor Plan</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {floorPlanDoc ? (
+                  {floorPlanUrl ? (
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
                   ) : (
                     <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Remaining</span>
@@ -1303,11 +1347,11 @@ const PropertyV2 = () => {
                     className="overflow-hidden"
                   >
                     <div className="px-6 pb-6">
-                      {floorPlanDoc?.storage_url ? (
+                      {floorPlanUrl ? (
                         <div className="space-y-4">
                           <div className="relative rounded-xl overflow-hidden border border-border group">
                             <img
-                              src={floorPlanDoc.storage_url}
+                              src={floorPlanUrl}
                               alt="Property floor plan"
                               className="w-full h-auto max-h-[400px] object-contain bg-secondary"
                             />
@@ -1341,36 +1385,6 @@ const PropertyV2 = () => {
                           </Button>
                         </div>
                       )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* 3D Scans Section */}
-            <div className="bg-card rounded-2xl border border-border overflow-hidden">
-              <button
-                onClick={() => setExpandedSection(expandedSection === "3dscans" ? null : "3dscans")}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Box className="w-5 h-5 text-emerald-500" />
-                  <span className="font-semibold text-foreground">3D Scans</span>
-                </div>
-                <ChevronRight
-                  className={`w-5 h-5 text-muted-foreground transition-transform ${expandedSection === "3dscans" ? "rotate-90" : ""}`}
-                />
-              </button>
-              <AnimatePresence>
-                {expandedSection === "3dscans" && (
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: "auto" }}
-                    exit={{ height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-6 pb-6">
-                      <Model3DGallery spaceId={id!} showExperimentalBadge />
                     </div>
                   </motion.div>
                 )}
