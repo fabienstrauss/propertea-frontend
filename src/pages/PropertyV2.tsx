@@ -832,169 +832,185 @@ const PropertyV2 = () => {
               </div>
             ) : (
               /* Normal AI Assistant Mode */
-              <div className="bg-card rounded-3xl border border-border shadow-xl">
-                {/* AI Header */}
-                <div className="bg-gradient-to-r from-coral/10 to-pink-500/10 px-6 py-4 border-b border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-coral to-pink-500 flex items-center justify-center shadow-lg">
-                      <Sparkles className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Ms. T</h3>
-                      <p className="text-xs text-muted-foreground">Your property assistant</p>
-                    </div>
-                    {isSending && (
-                      <div className="ml-auto flex items-center gap-2 text-muted-foreground">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-xs">Thinking...</span>
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-card to-card/95 shadow-2xl shadow-coral/5">
+                {/* Decorative gradient border */}
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-coral/20 via-pink-500/10 to-transparent p-[1px]">
+                  <div className="h-full w-full rounded-3xl bg-card" />
+                </div>
+                
+                {/* Content container */}
+                <div className="relative">
+                  {/* AI Header */}
+                  <div className="relative overflow-hidden px-6 py-5">
+                    {/* Subtle gradient background */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-coral/8 via-pink-500/5 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-coral/20 via-pink-500/10 to-transparent" />
+                    
+                    <div className="relative flex items-center gap-4">
+                      <div className="relative">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-coral via-pink-500 to-rose-400 flex items-center justify-center shadow-lg shadow-coral/25">
+                          <Sparkles className="w-7 h-7 text-white" />
+                        </div>
+                        {/* Online indicator */}
+                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-card" />
                       </div>
-                    )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg text-foreground">Ms. T</h3>
+                        <p className="text-sm text-muted-foreground">Your property assistant</p>
+                      </div>
+                      {isSending && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span className="text-xs font-medium">Thinking...</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* AI Message */}
-                <div className="p-6">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentAiMessage}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="text-lg text-foreground leading-relaxed"
-                    >
-                      {currentAiMessage || "Hey! Let's get your property set up. What would you like to start with?"}
-                    </motion.div>
-                  </AnimatePresence>
-
-                  {/* Extracted Data Toast */}
-                  <AnimatePresence>
-                    {lastExtracted && Object.keys(lastExtracted).length > 0 && (
+                  {/* AI Message */}
+                  <div className="px-6 py-6">
+                    <AnimatePresence mode="wait">
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="mt-4 flex items-center gap-2 text-green-600 dark:text-green-400"
+                        key={currentAiMessage}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="text-lg text-foreground leading-relaxed"
                       >
-                        <CheckCircle2 className="w-5 h-5" />
-                        <span className="text-sm font-medium">
-                          Got it! Updated {Object.keys(lastExtracted).join(", ")}
-                        </span>
+                        {currentAiMessage || "Hey! Let's get your property set up. What would you like to start with?"}
                       </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                    </AnimatePresence>
 
-                {/* Dynamic Suggestions from AI */}
-                {suggestions.length > 0 && (
-                  <div className="px-6 pb-4">
-                    <div className="flex flex-wrap gap-2">
-                      {suggestions.map((suggestion, idx) => (
-                        <Button
-                          key={idx}
-                          variant="outline"
-                          size="sm"
-                          className="rounded-full"
-                          onClick={() => sendMessage(suggestion)}
-                          disabled={isSending}
+                    {/* Extracted Data Toast */}
+                    <AnimatePresence>
+                      {lastExtracted && Object.keys(lastExtracted).length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400"
                         >
-                          {suggestion}
-                        </Button>
-                      ))}
-                    </div>
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            Got it! Updated {Object.keys(lastExtracted).join(", ")}
+                          </span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                )}
 
-                {/* Input Area */}
-                <div className="px-6 pb-6">
-                  <div className="flex gap-3 items-center">
-                    {/* Plus Menu */}
-                    <div className="relative">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className={`rounded-xl transition-all ${showPlusMenu ? "bg-coral text-white border-coral" : ""}`}
-                        onClick={() => setShowPlusMenu(!showPlusMenu)}
-                      >
-                        <Plus className={`w-5 h-5 transition-transform ${showPlusMenu ? "rotate-45" : ""}`} />
-                      </Button>
-
-                      <AnimatePresence>
-                        {showPlusMenu && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            className="absolute bottom-full left-0 mb-2 bg-card rounded-xl border border-border shadow-xl p-2 min-w-[200px] z-10"
+                  {/* Dynamic Suggestions from AI */}
+                  {suggestions.length > 0 && (
+                    <div className="px-6 pb-4">
+                      <div className="flex flex-wrap gap-2">
+                        {suggestions.map((suggestion, idx) => (
+                          <Button
+                            key={idx}
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full border-coral/20 hover:border-coral/40 hover:bg-coral/5 transition-all"
+                            onClick={() => sendMessage(suggestion)}
+                            disabled={isSending}
                           >
-                            <button
-                              onClick={() => {
-                                setSpecialMode("zen");
-                                setShowPlusMenu(false);
-                              }}
-                              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-                            >
-                              <div className="w-8 h-8 rounded-lg bg-coral/10 flex items-center justify-center">
-                                <FileUp className="w-4 h-4 text-coral" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">Zen Mode</p>
-                                <p className="text-xs text-muted-foreground">Bulk upload & process</p>
-                              </div>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSpecialMode("floorplan");
-                                setShowPlusMenu(false);
-                              }}
-                              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-                            >
-                              <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                                <Layers className="w-4 h-4 text-violet-500" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">Floor Plan</p>
-                                <p className="text-xs text-muted-foreground">Generate from images</p>
-                              </div>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSpecialMode("3dscan");
-                                setShowPlusMenu(false);
-                              }}
-                              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-                            >
-                              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                <Box className="w-4 h-4 text-emerald-500" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">3D Scan</p>
-                                <p className="text-xs text-muted-foreground">Upload .glb models</p>
-                              </div>
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                            {suggestion}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
+                  )}
 
-                    {/* Text Input */}
-                    <Input
-                      ref={inputRef}
-                      value={userInput}
-                      onChange={(e) => setUserInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                      placeholder="Type your answer..."
-                      className="flex-1 h-12 rounded-xl bg-muted/50 border-0"
-                      disabled={isSending}
-                    />
+                  {/* Input Area */}
+                  <div className="px-6 pb-6">
+                    <div className="flex gap-3 items-center p-2 rounded-2xl bg-muted/30 border border-border/50">
+                      {/* Plus Menu */}
+                      <div className="relative">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`rounded-xl transition-all ${showPlusMenu ? "bg-coral text-white hover:bg-coral/90" : "hover:bg-muted"}`}
+                          onClick={() => setShowPlusMenu(!showPlusMenu)}
+                        >
+                          <Plus className={`w-5 h-5 transition-transform duration-200 ${showPlusMenu ? "rotate-45" : ""}`} />
+                        </Button>
 
-                    <Button
-                      onClick={() => sendMessage()}
-                      disabled={!userInput.trim() || isSending}
-                      className="h-12 w-12 rounded-xl"
-                      variant="coral"
-                    >
-                      {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
-                    </Button>
+                        <AnimatePresence>
+                          {showPlusMenu && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              className="absolute bottom-full left-0 mb-2 bg-card rounded-2xl border border-border/50 shadow-2xl p-2 min-w-[220px] z-10"
+                            >
+                              <button
+                                onClick={() => {
+                                  setSpecialMode("zen");
+                                  setShowPlusMenu(false);
+                                }}
+                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-coral/5 transition-colors text-left group"
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-coral/20 to-orange-500/10 flex items-center justify-center group-hover:from-coral/30 group-hover:to-orange-500/20 transition-all">
+                                  <FileUp className="w-5 h-5 text-coral" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">Zen Mode</p>
+                                  <p className="text-xs text-muted-foreground">Bulk upload & process</p>
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSpecialMode("floorplan");
+                                  setShowPlusMenu(false);
+                                }}
+                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-violet-500/5 transition-colors text-left group"
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 flex items-center justify-center group-hover:from-violet-500/30 group-hover:to-fuchsia-500/20 transition-all">
+                                  <Layers className="w-5 h-5 text-violet-500" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">Floor Plan</p>
+                                  <p className="text-xs text-muted-foreground">Generate from images</p>
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSpecialMode("3dscan");
+                                  setShowPlusMenu(false);
+                                }}
+                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-500/5 transition-colors text-left group"
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 flex items-center justify-center group-hover:from-emerald-500/30 group-hover:to-teal-500/20 transition-all">
+                                  <Box className="w-5 h-5 text-emerald-500" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">3D Scan</p>
+                                  <p className="text-xs text-muted-foreground">Upload .glb models</p>
+                                </div>
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Text Input */}
+                      <Input
+                        ref={inputRef}
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                        placeholder="Type your answer..."
+                        className="flex-1 h-11 rounded-xl bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
+                        disabled={isSending}
+                      />
+
+                      <Button
+                        onClick={() => sendMessage()}
+                        disabled={!userInput.trim() || isSending}
+                        className="h-11 w-11 rounded-xl shadow-lg shadow-coral/20"
+                        variant="coral"
+                      >
+                        {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
