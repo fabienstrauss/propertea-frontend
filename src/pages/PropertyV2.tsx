@@ -832,34 +832,25 @@ const PropertyV2 = () => {
               </div>
             ) : (
               /* Normal AI Assistant Mode */
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-card to-card/95 shadow-2xl shadow-coral/5">
-                {/* Decorative gradient border */}
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-coral/20 via-pink-500/10 to-transparent p-[1px]">
-                  <div className="h-full w-full rounded-3xl bg-card" />
-                </div>
-                
+              <div className="rounded-3xl border border-border bg-card shadow-lg">
                 {/* Content container */}
-                <div className="relative">
+                <div>
                   {/* AI Header */}
-                  <div className="relative overflow-hidden px-6 py-5">
-                    {/* Subtle gradient background */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-coral/8 via-pink-500/5 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-coral/20 via-pink-500/10 to-transparent" />
-                    
-                    <div className="relative flex items-center gap-4">
+                  <div className="px-6 py-5 border-b border-border">
+                    <div className="flex items-center gap-4">
                       <div className="relative">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-coral via-pink-500 to-rose-400 flex items-center justify-center shadow-lg shadow-coral/25">
-                          <Sparkles className="w-7 h-7 text-white" />
+                        <div className="w-12 h-12 rounded-full bg-foreground flex items-center justify-center">
+                          <Sparkles className="w-6 h-6 text-background" />
                         </div>
                         {/* Online indicator */}
-                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-card" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-card" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-foreground">Ms. T</h3>
+                        <h3 className="font-semibold text-foreground">Ms. T</h3>
                         <p className="text-sm text-muted-foreground">Your property assistant</p>
                       </div>
                       {isSending && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-muted-foreground">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           <span className="text-xs font-medium">Thinking...</span>
                         </div>
@@ -908,7 +899,7 @@ const PropertyV2 = () => {
                             key={idx}
                             variant="outline"
                             size="sm"
-                            className="rounded-full border-coral/20 hover:border-coral/40 hover:bg-coral/5 transition-all"
+                            className="rounded-full"
                             onClick={() => sendMessage(suggestion)}
                             disabled={isSending}
                           >
@@ -921,13 +912,13 @@ const PropertyV2 = () => {
 
                   {/* Input Area */}
                   <div className="px-6 pb-6">
-                    <div className="flex gap-3 items-center p-2 rounded-2xl bg-muted/30 border border-border/50">
+                    <div className="flex gap-2 items-center p-1.5 rounded-2xl bg-muted border border-border">
                       {/* Plus Menu */}
                       <div className="relative">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`rounded-xl transition-all ${showPlusMenu ? "bg-coral text-white hover:bg-coral/90" : "hover:bg-muted"}`}
+                          className={`rounded-xl transition-all ${showPlusMenu ? "bg-foreground text-background hover:bg-foreground/90" : "hover:bg-background"}`}
                           onClick={() => setShowPlusMenu(!showPlusMenu)}
                         >
                           <Plus className={`w-5 h-5 transition-transform duration-200 ${showPlusMenu ? "rotate-45" : ""}`} />
@@ -939,17 +930,17 @@ const PropertyV2 = () => {
                               initial={{ opacity: 0, y: 10, scale: 0.95 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                              className="absolute bottom-full left-0 mb-2 bg-card rounded-2xl border border-border/50 shadow-2xl p-2 min-w-[220px] z-10"
+                              className="absolute bottom-full left-0 mb-2 bg-card rounded-xl border border-border shadow-xl p-1.5 min-w-[200px] z-10"
                             >
                               <button
                                 onClick={() => {
                                   setSpecialMode("zen");
                                   setShowPlusMenu(false);
                                 }}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-coral/5 transition-colors text-left group"
+                                className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted transition-colors text-left"
                               >
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-coral/20 to-orange-500/10 flex items-center justify-center group-hover:from-coral/30 group-hover:to-orange-500/20 transition-all">
-                                  <FileUp className="w-5 h-5 text-coral" />
+                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                                  <FileUp className="w-4 h-4 text-foreground" />
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-foreground">Zen Mode</p>
@@ -961,10 +952,10 @@ const PropertyV2 = () => {
                                   setSpecialMode("floorplan");
                                   setShowPlusMenu(false);
                                 }}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-violet-500/5 transition-colors text-left group"
+                                className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted transition-colors text-left"
                               >
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 flex items-center justify-center group-hover:from-violet-500/30 group-hover:to-fuchsia-500/20 transition-all">
-                                  <Layers className="w-5 h-5 text-violet-500" />
+                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                                  <Layers className="w-4 h-4 text-foreground" />
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-foreground">Floor Plan</p>
@@ -976,10 +967,10 @@ const PropertyV2 = () => {
                                   setSpecialMode("3dscan");
                                   setShowPlusMenu(false);
                                 }}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-500/5 transition-colors text-left group"
+                                className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted transition-colors text-left"
                               >
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 flex items-center justify-center group-hover:from-emerald-500/30 group-hover:to-teal-500/20 transition-all">
-                                  <Box className="w-5 h-5 text-emerald-500" />
+                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                                  <Box className="w-4 h-4 text-foreground" />
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-foreground">3D Scan</p>
@@ -998,14 +989,14 @@ const PropertyV2 = () => {
                         onChange={(e) => setUserInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                         placeholder="Type your answer..."
-                        className="flex-1 h-11 rounded-xl bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
+                        className="flex-1 h-10 rounded-xl bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
                         disabled={isSending}
                       />
 
                       <Button
                         onClick={() => sendMessage()}
                         disabled={!userInput.trim() || isSending}
-                        className="h-11 w-11 rounded-xl shadow-lg shadow-coral/20"
+                        className="h-10 w-10 rounded-xl"
                         variant="coral"
                       >
                         {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
