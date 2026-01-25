@@ -453,9 +453,6 @@ const ExplorePropertyDetail = () => {
             {/* Space Info */}
             <div>
               <div className="mb-4">
-                <h2 className="text-xl font-semibold mb-1">
-                  Hosted by {mock.hostName}
-                </h2>
                 <p className="text-muted-foreground">
                   {propertyDetails.maxGuests} guests · {propertyDetails.bedrooms} bedroom{propertyDetails.bedrooms > 1 ? 's' : ''} · {propertyDetails.beds} bed{propertyDetails.beds > 1 ? 's' : ''} · {propertyDetails.bathrooms} bath{propertyDetails.bathrooms > 1 ? 's' : ''}
                 </p>
