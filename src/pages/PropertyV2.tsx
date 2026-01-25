@@ -189,7 +189,7 @@ const PropertyV2 = () => {
 
   const loadConversation = async () => {
     try {
-      const url = `https://ufjwtghsqkmlxldsgfsv.supabase.co/functions/v1/space-continue/${id}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/space-continue/${id}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -222,7 +222,7 @@ const PropertyV2 = () => {
     const userMsg: Message = { role: 'user', content: messageToSend, created_at: new Date().toISOString() };
 
     try {
-      const url = `https://ufjwtghsqkmlxldsgfsv.supabase.co/functions/v1/space-continue/${id}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/space-continue/${id}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: {
