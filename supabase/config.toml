@@ -1,0 +1,4 @@
+project_id = "ufjwtghsqkmlxldsgfsv"
+
+[functions.generate-floorplan]
+verify_jwt = false
