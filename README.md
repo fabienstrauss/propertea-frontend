@@ -142,6 +142,7 @@ npm run dev
 VITE_SUPABASE_URL=<supabase-url>
 VITE_SUPABASE_ANON_KEY=<supabase-anon-key>
 VITE_REALTIME_BACKEND_URL=<realtime-server-url>
+VITE_OPENAI_API_KEY=<openai-api-key>
 ```
 
 ## Project Structure
