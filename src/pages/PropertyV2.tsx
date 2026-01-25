@@ -1006,7 +1006,9 @@ const PropertyV2 = () => {
                 <div className="flex items-center gap-2 mb-4">
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
                   <h4 className="font-semibold text-foreground">Completed</h4>
-                  <span className="ml-auto text-sm text-muted-foreground">{progress?.filled || 0}</span>
+                  <span className="ml-auto text-sm text-muted-foreground">
+                    {(progress?.filled || 0) + (floorPlanUrl ? 1 : 0)}
+                  </span>
                 </div>
                 <div className="space-y-2">
                   {progress?.fieldDetails
@@ -1017,7 +1019,16 @@ const PropertyV2 = () => {
                         <span className="text-foreground font-medium truncate max-w-[120px]">{field.value}</span>
                       </div>
                     ))}
-                  {progress?.filled === 0 && (
+                  {floorPlanUrl && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-2">
+                        <Layers className="w-3 h-3 text-violet-500" />
+                        Floor Plan
+                      </span>
+                      <span className="text-green-500 font-medium">✓</span>
+                    </div>
+                  )}
+                  {progress?.filled === 0 && !floorPlanUrl && (
                     <p className="text-sm text-muted-foreground italic">Nothing yet - let's get started!</p>
                   )}
                 </div>
@@ -1027,7 +1038,9 @@ const PropertyV2 = () => {
                 <div className="flex items-center gap-2 mb-4">
                   <Circle className="w-5 h-5 text-muted-foreground" />
                   <h4 className="font-semibold text-foreground">Remaining</h4>
-                  <span className="ml-auto text-sm text-muted-foreground">{progress?.missingFields.length || 0}</span>
+                  <span className="ml-auto text-sm text-muted-foreground">
+                    {(progress?.missingFields.length || 0) + (floorPlanUrl ? 0 : 1)}
+                  </span>
                 </div>
                 <div className="space-y-2">
                   {progress?.fieldDetails
@@ -1046,6 +1059,18 @@ const PropertyV2 = () => {
                         <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-coral" />
                       </button>
                     ))}
+                  {!floorPlanUrl && (
+                    <button
+                      onClick={() => setSpecialMode("floorplan")}
+                      className="w-full flex items-center justify-between text-sm p-2 rounded-lg hover:bg-muted/50 transition-colors group"
+                    >
+                      <span className="text-muted-foreground group-hover:text-foreground flex items-center gap-2">
+                        <Layers className="w-3 h-3 text-violet-500" />
+                        Floor Plan
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-violet-500" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1073,6 +1098,26 @@ const PropertyV2 = () => {
 
             {/* 3D Models Gallery in AI Mode */}
             <Model3DGallery spaceId={id!} showExperimentalBadge />
+
+            {/* Floor Plan Display in AI Mode */}
+            {floorPlanUrl && (
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <div className="px-6 py-4 border-b border-border flex items-center gap-3">
+                  <Layers className="w-5 h-5 text-violet-500" />
+                  <span className="font-semibold text-foreground">Floor Plan</span>
+                  <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />
+                </div>
+                <div className="p-6">
+                  <div className="relative rounded-xl overflow-hidden border border-border">
+                    <img
+                      src={floorPlanUrl}
+                      alt="Property floor plan"
+                      className="w-full h-auto max-h-[300px] object-contain bg-secondary"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
