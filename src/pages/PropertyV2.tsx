@@ -94,6 +94,19 @@ interface UploadedFile {
 
 type SpecialMode = null | "zen" | "floorplan" | "3dscan";
 
+// Helper to deduplicate repeated values like "BerlinBerlin" -> "Berlin"
+const deduplicateValue = (value: string): string => {
+  if (!value || value.length < 2) return value;
+  const len = value.length;
+  for (let i = 1; i <= len / 2; i++) {
+    if (len % i === 0) {
+      const pattern = value.substring(0, i);
+      if (pattern.repeat(len / i) === value) return pattern;
+    }
+  }
+  return value;
+};
+
 const PropertyV2 = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -1026,7 +1039,7 @@ const PropertyV2 = () => {
                     <div key={item.key} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{item.label}</span>
                       <span className="text-foreground font-medium truncate max-w-[120px]">
-                        {item.value || "✓"}
+                        {item.value ? deduplicateValue(String(item.value)) : "✓"}
                       </span>
                     </div>
                   ))}
