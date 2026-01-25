@@ -69,7 +69,7 @@ const PropertyTable = ({ properties }: PropertyTableProps) => {
             return (
               <TableRow
                 key={property.id}
-                onClick={() => navigate(`/property/${property.id}`)}
+                onClick={() => navigate(`/property/v2/${property.id}`)}
                 className="cursor-pointer hover:bg-secondary/50"
               >
                 <TableCell>

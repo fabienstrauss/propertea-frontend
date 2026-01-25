@@ -44,7 +44,7 @@ const PropertyCard = ({ property, index }: PropertyCardProps) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      onClick={() => navigate(`/property/${property.id}`)}
+      onClick={() => navigate(`/property/v2/${property.id}`)}
       className={cn(
         "group bg-card rounded-2xl border p-6 cursor-pointer transition-all duration-300 relative overflow-hidden",
         isEventSpace 
