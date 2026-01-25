@@ -216,16 +216,19 @@ Types: room, amenity, feature, detail.`
           space_id: spaceId,
           name: item.name,
           room_type: item.category,
+          room_number: 1, // Default room number for general amenities
           status: 'verified',
         }));
 
       if (amenities.length > 0) {
         const { error: insertError } = await supabase
           .from("space_amenity")
-          .upsert(amenities, { onConflict: 'space_id,name' });
+          .upsert(amenities, { onConflict: 'space_id,name,room_type,room_number' });
 
         if (insertError) {
           console.error("Error saving amenities:", insertError);
+        } else {
+          console.log(`Saved ${amenities.length} amenities to database`);
         }
       }
 
@@ -246,6 +249,8 @@ Types: room, amenity, feature, detail.`
 
         if (roomError) {
           console.error("Error saving rooms:", roomError);
+        } else {
+          console.log(`Saved ${rooms.length} rooms to database`);
         }
       }
 
