@@ -14,14 +14,45 @@ const Explore = () => {
   const { data: spaces, isLoading } = useQuery({
     queryKey: ['public-spaces'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch spaces
+      const { data: spacesData, error: spacesError } = await supabase
         .from('space')
         .select('*')
         .eq('status', 'published')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (spacesError) throw spacesError;
+      if (!spacesData || spacesData.length === 0) return [];
+
+      // Fetch primary images for all spaces
+      const spaceIds = spacesData.map(s => s.id);
+      const { data: imagesData } = await supabase
+        .from('space_image')
+        .select('space_id, storage_url, is_primary, display_order')
+        .in('space_id', spaceIds)
+        .order('display_order', { ascending: true });
+
+      // Map primary images to spaces
+      const imageMap = new Map<string, string>();
+      if (imagesData) {
+        // Group by space_id and pick primary or first image
+        const groupedImages = imagesData.reduce((acc, img) => {
+          if (!acc[img.space_id]) acc[img.space_id] = [];
+          acc[img.space_id].push(img);
+          return acc;
+        }, {} as Record<string, typeof imagesData>);
+
+        Object.entries(groupedImages).forEach(([spaceId, images]) => {
+          const primaryImg = images.find(img => img.is_primary);
+          const firstImg = images[0];
+          imageMap.set(spaceId, primaryImg?.storage_url || firstImg?.storage_url || '');
+        });
+      }
+
+      return spacesData.map(space => ({
+        ...space,
+        primaryImage: imageMap.get(space.id) || null,
+      }));
     },
   });
 
@@ -38,6 +69,7 @@ const Explore = () => {
     description: space.description,
     status: space.status,
     created_at: space.created_at,
+    primaryImage: space.primaryImage,
   }));
 
   return (

@@ -10,6 +10,7 @@ interface Property {
   description: string | null;
   status: string | null;
   created_at: string;
+  primaryImage?: string | null;
 }
 
 interface ExplorePropertyCardProps {
@@ -17,28 +18,20 @@ interface ExplorePropertyCardProps {
   index: number;
 }
 
-// Mock data for Airbnb-style display
+// Fallback placeholder image
+const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop';
+
+// Mock data for Airbnb-style display (only for non-image data)
 const getMockData = (id: string) => {
-  const images = [
-    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop',
-  ];
-  
   const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   
   return {
-    image: images[hash % images.length],
     rating: (4 + (hash % 10) / 10).toFixed(2),
     reviews: 10 + (hash % 200),
     price: 80 + (hash % 400),
     beds: 1 + (hash % 5),
     baths: 1 + (hash % 3),
     guests: 2 + (hash % 8),
-    type: ['Entire home', 'Private room', 'Shared room', 'Unique stay'][hash % 4],
     superhost: hash % 3 === 0,
   };
 };
@@ -47,6 +40,9 @@ const ExplorePropertyCard = ({ property, index }: ExplorePropertyCardProps) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const mock = getMockData(property.id);
+
+  // Use real primary image if available, otherwise fallback to placeholder
+  const imageUrl = property.primaryImage || PLACEHOLDER_IMAGE;
 
   return (
     <motion.div
@@ -59,7 +55,7 @@ const ExplorePropertyCard = ({ property, index }: ExplorePropertyCardProps) => {
       {/* Image Container */}
       <div className="relative aspect-square rounded-xl overflow-hidden mb-3">
         <img
-          src={mock.image}
+          src={imageUrl}
           alt={property.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
@@ -112,7 +108,7 @@ const ExplorePropertyCard = ({ property, index }: ExplorePropertyCardProps) => {
         </div>
         
         <p className="text-muted-foreground text-sm truncate">
-          {mock.type} · {mock.beds} bed{mock.beds > 1 ? 's' : ''} · {mock.baths} bath{mock.baths > 1 ? 's' : ''}
+          {mock.beds} bed{mock.beds > 1 ? 's' : ''} · {mock.baths} bath{mock.baths > 1 ? 's' : ''}
         </p>
         
         <p className="text-muted-foreground text-sm">

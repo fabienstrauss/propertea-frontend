@@ -454,7 +454,7 @@ const ExplorePropertyDetail = () => {
             <div>
               <div className="mb-4">
                 <h2 className="text-xl font-semibold mb-1">
-                  {mock.type} hosted by {mock.hostName}
+                  Hosted by {mock.hostName}
                 </h2>
                 <p className="text-muted-foreground">
                   {propertyDetails.maxGuests} guests · {propertyDetails.bedrooms} bedroom{propertyDetails.bedrooms > 1 ? 's' : ''} · {propertyDetails.beds} bed{propertyDetails.beds > 1 ? 's' : ''} · {propertyDetails.bathrooms} bath{propertyDetails.bathrooms > 1 ? 's' : ''}
@@ -516,16 +516,12 @@ const ExplorePropertyDetail = () => {
                 )}
               </div>
 
-              {/* 3D Scan Section */}
-              {models3D.length > 0 && (
-                <>
-                  <Separator className="my-6" />
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">3D Virtual Tour</h3>
-                    <Model3DGallery spaceId={id || ''} showExperimentalBadge compact />
-                  </div>
-                </>
-              )}
+            {/* 3D Scan Section - Always show if models exist */}
+            <Separator className="my-6" />
+            <div>
+              <h3 className="text-lg font-semibold mb-4">3D Virtual Tour</h3>
+              <Model3DGallery spaceId={id || ''} showExperimentalBadge={false} />
+            </div>
 
               {/* Floor Plan Section */}
               <Separator className="my-6" />
