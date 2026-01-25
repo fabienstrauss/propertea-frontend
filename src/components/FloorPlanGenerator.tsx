@@ -95,7 +95,7 @@ const FloorPlanGenerator = ({
         // Create space_document entry with is_floorplan_related_doc = true
         const { error: dbError } = await supabase
           .from('space_document')
-          .insert({
+          .insert([{
             space_id: propertyId,
             file_name: file.name,
             file_type: isImage ? 'image' : 'pdf',
@@ -103,9 +103,9 @@ const FloorPlanGenerator = ({
             file_size: file.size,
             storage_url: storageUrl,
             storage_path: storagePath,
-            processing_status: 'uploaded',
+            processing_status: 'pending' as const,
             is_floorplan_related_doc: true,
-          });
+          }]);
 
         if (dbError) throw dbError;
 

@@ -53,18 +53,22 @@ export const useFileUpload = () => {
 
       // Create space if not provided
       if (!targetSpaceId) {
-        const { data: space, error: spaceError } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+        
+        const { data: newSpace, error: spaceError } = await supabase
           .from('space')
-          .insert({
+          .insert([{
             name: `Space from ${file.name}`,
-            status: 'pending',
-            space_type: 'property',
-          })
+            status: 'draft' as const,
+            space_type: 'property' as const,
+            user_id: user.id,
+          }])
           .select()
           .single();
 
         if (spaceError) throw spaceError;
-        targetSpaceId = space.id;
+        targetSpaceId = newSpace!.id;
       }
 
       // Map file type to document type
@@ -84,16 +88,16 @@ export const useFileUpload = () => {
       // Insert document record
       const { data: docData, error: docError } = await supabase
         .from('space_document')
-        .insert({
-          space_id: targetSpaceId,
+        .insert([{
+          space_id: targetSpaceId!,
           file_name: file.name,
           file_type: getDocType(file.type),
           mime_type: file.type,
           storage_url: urlData.publicUrl,
           storage_path: storagePath,
           file_size: file.size,
-          processing_status: 'processing',
-        })
+          processing_status: 'processing' as const,
+        }])
         .select()
         .single();
 
@@ -119,12 +123,12 @@ export const useFileUpload = () => {
       // Update document status in DB
       await supabase
         .from('space_document')
-        .update({ processing_status: 'completed' })
-        .eq('id', docData.id);
+        .update({ processing_status: 'completed' as const })
+        .eq('id', docData!.id);
 
       await supabase
         .from('space')
-        .update({ status: 'active' })
+        .update({ status: 'ready' as const })
         .eq('id', targetSpaceId);
 
       return { ...newFile, dbId: docData.id, status: 'completed', progress: 100 };
