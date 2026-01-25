@@ -48,27 +48,28 @@ interface Message {
   created_at: string;
 }
 
-interface FieldDetail {
+interface ProgressItem {
   key: string;
   label: string;
   category: string;
-  filled: boolean;
-  value: string | null;
+  value?: string | number;
 }
 
 interface ProgressDetails {
   percent: number;
-  filledFields: string[];
-  missingFields: string[];
-  total: number;
-  filled: number;
-  fieldDetails: FieldDetail[];
+  completedItems: ProgressItem[];
+  remainingItems: ProgressItem[];
 }
 
 interface ContinueResponse {
   percent: number;
-  reply: string;
+  messages: { role: string; content: string }[];
   suggestions: string[];
+  progress_details?: {
+    percent: number;
+    completedItems: ProgressItem[];
+    remainingItems: ProgressItem[];
+  };
 }
 
 interface Space {
@@ -241,17 +242,17 @@ const PropertyV2 = () => {
       if (!res.ok) throw new Error("Failed to load");
       const data: ContinueResponse = await res.json();
       
-      // Update progress with percent from response
-      setProgress(prev => prev ? { ...prev, percent: data.percent } : { 
-        percent: data.percent, 
-        filledFields: [], 
-        missingFields: [], 
-        total: 0, 
-        filled: 0, 
-        fieldDetails: [] 
+      // Update progress with data from response
+      const progressData = data.progress_details || { percent: data.percent, completedItems: [], remainingItems: [] };
+      setProgress({
+        percent: progressData.percent,
+        completedItems: progressData.completedItems || [],
+        remainingItems: progressData.remainingItems || [],
       });
       setSuggestions(data.suggestions || []);
-      if (data.reply) setCurrentAiMessage(data.reply);
+      // Get the last assistant message
+      const lastAssistantMsg = data.messages?.filter(m => m.role === "assistant").pop();
+      if (lastAssistantMsg) setCurrentAiMessage(lastAssistantMsg.content);
     } catch (error) {
       console.error("Error loading:", error);
     }
@@ -285,21 +286,22 @@ const PropertyV2 = () => {
       if (!res.ok) throw new Error("Failed to send");
       const data: ContinueResponse = await res.json();
       
-      // Add the user message and AI reply to the messages list
-      const aiMsg: Message = { role: "assistant", content: data.reply, created_at: new Date().toISOString() };
-      setMessages(prev => [...prev, userMsg, aiMsg]);
+      // Get the last assistant message
+      const lastAssistantMsg = data.messages?.filter(m => m.role === "assistant").pop();
+      if (lastAssistantMsg) {
+        const aiMsg: Message = { role: "assistant", content: lastAssistantMsg.content, created_at: new Date().toISOString() };
+        setMessages(prev => [...prev, userMsg, aiMsg]);
+        setCurrentAiMessage(lastAssistantMsg.content);
+      }
       
-      // Update progress with percent from response
-      setProgress(prev => prev ? { ...prev, percent: data.percent } : { 
-        percent: data.percent, 
-        filledFields: [], 
-        missingFields: [], 
-        total: 0, 
-        filled: 0, 
-        fieldDetails: [] 
+      // Update progress with data from response
+      const progressData = data.progress_details || { percent: data.percent, completedItems: [], remainingItems: [] };
+      setProgress({
+        percent: progressData.percent,
+        completedItems: progressData.completedItems || [],
+        remainingItems: progressData.remainingItems || [],
       });
       setSuggestions(data.suggestions || []);
-      setCurrentAiMessage(data.reply);
       
       // Refetch space data to get any updates
       refetchSpace();
@@ -1014,18 +1016,18 @@ const PropertyV2 = () => {
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
                   <h4 className="font-semibold text-foreground">Completed</h4>
                   <span className="ml-auto text-sm text-muted-foreground">
-                    {(progress?.filled || 0) + (floorPlanUrl ? 1 : 0)}
+                    {(progress?.completedItems.length || 0) + (floorPlanUrl ? 1 : 0)}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {progress?.fieldDetails
-                    .filter((f) => f.filled)
-                    .map((field) => (
-                      <div key={field.key} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{field.label}</span>
-                        <span className="text-foreground font-medium truncate max-w-[120px]">{field.value}</span>
-                      </div>
-                    ))}
+                  {progress?.completedItems.map((item) => (
+                    <div key={item.key} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="text-foreground font-medium truncate max-w-[120px]">
+                        {item.value || "✓"}
+                      </span>
+                    </div>
+                  ))}
                   {floorPlanUrl && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground flex items-center gap-2">
@@ -1035,7 +1037,7 @@ const PropertyV2 = () => {
                       <span className="text-green-500 font-medium">✓</span>
                     </div>
                   )}
-                  {progress?.filled === 0 && !floorPlanUrl && (
+                  {progress?.completedItems.length === 0 && !floorPlanUrl && (
                     <p className="text-sm text-muted-foreground italic">Nothing yet - let's get started!</p>
                   )}
                 </div>
@@ -1046,26 +1048,23 @@ const PropertyV2 = () => {
                   <Circle className="w-5 h-5 text-muted-foreground" />
                   <h4 className="font-semibold text-foreground">Remaining</h4>
                   <span className="ml-auto text-sm text-muted-foreground">
-                    {(progress?.missingFields.length || 0) + (floorPlanUrl ? 0 : 1)}
+                    {(progress?.remainingItems.length || 0) + (floorPlanUrl ? 0 : 1)}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {progress?.fieldDetails
-                    .filter((f) => !f.filled)
-                    .slice(0, 5)
-                    .map((field) => (
-                      <button
-                        key={field.key}
-                        onClick={() => {
-                          setUserInput(`My ${field.label.toLowerCase()} is `);
-                          inputRef.current?.focus();
-                        }}
-                        className="w-full flex items-center justify-between text-sm p-2 rounded-lg hover:bg-muted/50 transition-colors group"
-                      >
-                        <span className="text-muted-foreground group-hover:text-foreground">{field.label}</span>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-coral" />
-                      </button>
-                    ))}
+                  {progress?.remainingItems.slice(0, 5).map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => {
+                        setUserInput(`My ${item.label.toLowerCase()} is `);
+                        inputRef.current?.focus();
+                      }}
+                      className="w-full flex items-center justify-between text-sm p-2 rounded-lg hover:bg-muted/50 transition-colors group"
+                    >
+                      <span className="text-muted-foreground group-hover:text-foreground">{item.label}</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-coral" />
+                    </button>
+                  ))}
                   {!floorPlanUrl && (
                     <button
                       onClick={() => setSpecialMode("floorplan")}
