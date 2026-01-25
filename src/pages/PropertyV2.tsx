@@ -52,6 +52,7 @@ import DashboardHeader from '@/components/DashboardHeader';
 import PropertyImageGallery from '@/components/PropertyImageGallery';
 import AmenitiesChecklist from '@/components/AmenitiesChecklist';
 import Model3DGallery from '@/components/Model3DGallery';
+import FloorPlanDisplay from '@/components/FloorPlanDisplay';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -171,6 +172,24 @@ const PropertyV2 = () => {
         .from('room')
         .select('name, room_type')
         .eq('space_id', id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  // Fetch floor plan document
+  const { data: floorPlanDoc } = useQuery({
+    queryKey: ['floor-plan', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('space_document')
+        .select('storage_url')
+        .eq('space_id', id)
+        .eq('is_floorplan_related_doc', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -966,6 +985,17 @@ const PropertyV2 = () => {
 
             {/* 3D Models Gallery in AI Mode */}
             <Model3DGallery spaceId={id!} showExperimentalBadge />
+
+            {/* Floor Plan Display in AI Mode */}
+            {floorPlanDoc?.storage_url && (
+              <div className="bg-card rounded-2xl border border-border p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Layers className="w-5 h-5 text-coral" />
+                  <h4 className="font-semibold text-foreground">Floor Plan</h4>
+                </div>
+                <FloorPlanDisplay spaceId={id!} floorPlanUrl={floorPlanDoc.storage_url} />
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -1130,6 +1160,34 @@ const PropertyV2 = () => {
                   <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                     <div className="px-6 pb-6">
                       <Model3DGallery spaceId={id!} showExperimentalBadge />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Floor Plan Section */}
+            <div className="bg-card rounded-2xl border border-border overflow-hidden">
+              <button
+                onClick={() => setExpandedSection(expandedSection === 'floorplan' ? null : 'floorplan')}
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Layers className="w-5 h-5 text-coral" />
+                  <span className="font-semibold text-foreground">Floor Plan</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {floorPlanDoc?.storage_url && (
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  )}
+                  <ChevronRight className={`w-5 h-5 text-muted-foreground transition-transform ${expandedSection === 'floorplan' ? 'rotate-90' : ''}`} />
+                </div>
+              </button>
+              <AnimatePresence>
+                {expandedSection === 'floorplan' && (
+                  <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                    <div className="px-6 pb-6">
+                      <FloorPlanDisplay spaceId={id!} floorPlanUrl={floorPlanDoc?.storage_url} />
                     </div>
                   </motion.div>
                 )}
