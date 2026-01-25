@@ -66,12 +66,9 @@ interface ProgressDetails {
 }
 
 interface ContinueResponse {
-  onboarding_percent: number;
-  progress_details: ProgressDetails;
-  space: any;
-  messages: Message[];
-  extracted?: Record<string, any>;
-  suggestions?: string[];
+  percent: number;
+  reply: string;
+  suggestions: string[];
 }
 
 interface Space {
@@ -212,11 +209,18 @@ const PropertyV2 = () => {
       });
       if (!res.ok) throw new Error("Failed to load");
       const data: ContinueResponse = await res.json();
-      setMessages(data.messages);
-      setProgress(data.progress_details);
+      
+      // Update progress with percent from response
+      setProgress(prev => prev ? { ...prev, percent: data.percent } : { 
+        percent: data.percent, 
+        filledFields: [], 
+        missingFields: [], 
+        total: 0, 
+        filled: 0, 
+        fieldDetails: [] 
+      });
       setSuggestions(data.suggestions || []);
-      const lastAi = data.messages.filter((m) => m.role === "assistant").pop();
-      if (lastAi) setCurrentAiMessage(lastAi.content);
+      if (data.reply) setCurrentAiMessage(data.reply);
     } catch (error) {
       console.error("Error loading:", error);
     }
@@ -249,17 +253,25 @@ const PropertyV2 = () => {
       });
       if (!res.ok) throw new Error("Failed to send");
       const data: ContinueResponse = await res.json();
-      setMessages(data.messages);
-      setProgress(data.progress_details);
+      
+      // Add the user message and AI reply to the messages list
+      const aiMsg: Message = { role: "assistant", content: data.reply, created_at: new Date().toISOString() };
+      setMessages(prev => [...prev, userMsg, aiMsg]);
+      
+      // Update progress with percent from response
+      setProgress(prev => prev ? { ...prev, percent: data.percent } : { 
+        percent: data.percent, 
+        filledFields: [], 
+        missingFields: [], 
+        total: 0, 
+        filled: 0, 
+        fieldDetails: [] 
+      });
       setSuggestions(data.suggestions || []);
-
-      const lastAi = data.messages.filter((m) => m.role === "assistant").pop();
-      if (lastAi) setCurrentAiMessage(lastAi.content);
-
-      if (data.extracted) {
-        setLastExtracted(data.extracted);
-        refetchSpace();
-      }
+      setCurrentAiMessage(data.reply);
+      
+      // Refetch space data to get any updates
+      refetchSpace();
     } catch (error) {
       console.error("Error:", error);
       toast.error("Something went wrong");
