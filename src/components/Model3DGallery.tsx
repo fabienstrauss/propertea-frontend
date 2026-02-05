@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,7 +31,8 @@ interface Model3D {
   created_at: string | null;
 }
 
-const Model3DGallery = ({ spaceId, showExperimentalBadge = false, compact = false, readOnly = false }: Model3DGalleryProps) => {
+const Model3DGallery = React.forwardRef<HTMLDivElement, Model3DGalleryProps>(
+  ({ spaceId, showExperimentalBadge = false, compact = false, readOnly = false }, ref) => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -327,6 +328,8 @@ const Model3DGallery = ({ spaceId, showExperimentalBadge = false, compact = fals
       </CardContent>
     </Card>
   );
-};
+});
+
+Model3DGallery.displayName = 'Model3DGallery';
 
 export default Model3DGallery;
