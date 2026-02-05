@@ -1,14 +1,25 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mic, MicOff, Video, VideoOff, Phone, MessageSquare, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles, SwitchCamera } from "lucide-react";
+import { ArrowLeft, Mic, MicOff, Video, VideoOff, Phone, MessageSquare, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles, SwitchCamera, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const BACKEND_URL = import.meta.env.VITE_REALTIME_BACKEND_URL || "http://localhost:3000";
 const WS_URL = BACKEND_URL.replace(/^http/, "ws");
 
 const SAMPLE_RATE = 16000;
 const OUTPUT_SAMPLE_RATE = 24000;
+
+interface CameraDevice {
+  deviceId: string;
+  label: string;
+}
 
 const SpaceLive = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +32,8 @@ const SpaceLive = () => {
   const [showTranscription, setShowTranscription] = useState(true);
   const [transcripts, setTranscripts] = useState<{ role: 'user' | 'assistant'; text: string; time: string }[]>([]);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [availableCameras, setAvailableCameras] = useState<CameraDevice[]>([]);
+  const [currentCameraId, setCurrentCameraId] = useState<string>("");
 
   const wsRef = useRef<WebSocket | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -420,8 +433,26 @@ const SpaceLive = () => {
     logMessage("Session stopped");
   }, [stopAllAudio, logMessage]);
 
+  // Enumerate available cameras
+  const enumerateCameras = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices
+        .filter((device) => device.kind === "videoinput")
+        .map((device, index) => ({
+          deviceId: device.deviceId,
+          label: device.label || `Camera ${index + 1}`,
+        }));
+      setAvailableCameras(videoDevices);
+      logMessage(`Found ${videoDevices.length} camera(s)`);
+    } catch (err: any) {
+      logMessage("Failed to enumerate cameras: " + err.message);
+    }
+  }, [logMessage]);
+
   useEffect(() => {
     startSession();
+    enumerateCameras();
 
     return () => {
       stopSession();
@@ -454,22 +485,31 @@ const SpaceLive = () => {
     logMessage(isVideoOff ? "Video enabled" : "Video disabled");
   };
 
-  const switchCamera = async () => {
-    const newFacingMode = facingMode === "user" ? "environment" : "user";
-    
+  const switchCamera = async (deviceId?: string) => {
     try {
       // Stop current video track
       if (streamRef.current) {
         streamRef.current.getVideoTracks().forEach((track) => track.stop());
       }
 
-      // Get new video stream with different facing mode
+      // Build video constraints
+      const videoConstraints: MediaTrackConstraints = {
+        width: 640,
+        height: 480,
+      };
+
+      if (deviceId) {
+        videoConstraints.deviceId = { exact: deviceId };
+      } else {
+        // Toggle facing mode if no specific device selected
+        const newFacingMode = facingMode === "user" ? "environment" : "user";
+        videoConstraints.facingMode = newFacingMode;
+        setFacingMode(newFacingMode);
+      }
+
+      // Get new video stream
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: 640,
-          height: 480,
-          facingMode: newFacingMode,
-        },
+        video: videoConstraints,
       });
 
       // Replace video track in existing stream
@@ -487,9 +527,21 @@ const SpaceLive = () => {
         videoRef.current.srcObject = streamRef.current;
       }
 
-      setFacingMode(newFacingMode);
-      logMessage(`Camera switched to ${newFacingMode === "user" ? "front" : "back"}`);
-      toast.success(`📷 Switched to ${newFacingMode === "user" ? "front" : "back"} camera`);
+      // Update current camera ID
+      const settings = newVideoTrack.getSettings();
+      if (settings.deviceId) {
+        setCurrentCameraId(settings.deviceId);
+      }
+
+      // Find camera label for toast
+      const camera = availableCameras.find(c => c.deviceId === (deviceId || settings.deviceId));
+      const cameraName = camera?.label || "camera";
+      
+      logMessage(`Camera switched to: ${cameraName}`);
+      toast.success(`📷 Switched to ${cameraName}`);
+      
+      // Re-enumerate in case labels weren't available before
+      enumerateCameras();
     } catch (err: any) {
       logMessage("Failed to switch camera: " + err.message);
       toast.error("Failed to switch camera");
@@ -688,15 +740,44 @@ const SpaceLive = () => {
             {isVideoOff ? <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Video className="w-4 h-4 sm:w-5 sm:h-5" />}
           </Button>
 
-          <Button
-            variant="outline"
-            size="lg"
-            className="rounded-full w-12 h-12 sm:w-14 sm:h-14 p-0 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:border-cyan-400/50 transition-all duration-300"
-            onClick={switchCamera}
-            disabled={isVideoOff}
-          >
-            <SwitchCamera className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="lg"
+                className="rounded-full w-12 h-12 sm:w-14 sm:h-14 p-0 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:border-cyan-400/50 transition-all duration-300"
+                disabled={isVideoOff}
+              >
+                <SwitchCamera className="w-4 h-4 sm:w-5 sm:h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="center" 
+              side="top" 
+              className="bg-slate-900/95 backdrop-blur-xl border-white/20 text-white mb-2"
+            >
+              {availableCameras.length === 0 ? (
+                <DropdownMenuItem disabled className="text-white/50">
+                  No cameras found
+                </DropdownMenuItem>
+              ) : (
+                availableCameras.map((camera) => (
+                  <DropdownMenuItem
+                    key={camera.deviceId}
+                    onClick={() => switchCamera(camera.deviceId)}
+                    className="flex items-center gap-2 cursor-pointer hover:bg-white/10 focus:bg-white/10 text-white"
+                  >
+                    {currentCameraId === camera.deviceId && (
+                      <Check className="w-4 h-4 text-cyan-400" />
+                    )}
+                    <span className={currentCameraId === camera.deviceId ? "text-cyan-400" : ""}>
+                      {camera.label}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button 
             variant="destructive" 
